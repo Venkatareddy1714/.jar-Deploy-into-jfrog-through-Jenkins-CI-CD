@@ -1,0 +1,36 @@
+pipeline {
+    agent any
+
+    environment {
+        ARTIFACTORY_URL = 'http://192.168.14.145:8082/'
+        ARTIFACTORY_REPO = 'example-repo-local'
+        JAR_NAME = 'upi-acq-vo-1.0.121.UAT.jar'
+        BUILD_NAME = 'jar-upload-build'
+    }
+
+    stages {
+        stage('Configure & Upload to JFrog') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'JFROG_CREDENTIALS', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    sh '''
+                        jf config add jfrog-server \
+                            --url=$ARTIFACTORY_URL \
+                            --user=$USERNAME \
+                            --password=$PASSWORD \
+                            --interactive=false \
+                            --overwrite=true
+
+                        jf rt upload "${JAR_NAME}" "$ARTIFACTORY_REPO/$JAR_NAME" \
+                            --server-id=jfrog-server
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline completed.'
+        }
+    }
+}
